@@ -39,21 +39,25 @@
   },
   packageRules: [
     {
-      matchPackageNames: ["renovatebot/*"],
-      "postUpgradeTasks": {
-        "commands": [
-          "if [ -f .pre-commit-config.yaml ] || [ -f .pre-commit-config.yml ]; then echo 'Installing and running pre-commit'; pip install pre-commit && pre-commit --version && pre-commit install && pre-commit run --all-files || true; fi"
-        ],
-        "executionMode": "update"
-      }
+      "groupName": "minor-grouped",
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "matchPackageNames": [
+        "*"
+      ]
     },
     {
+      "groupName": "patch-grouped", // Group all pin and digests updates in a single branch with patch to save CI computing.
+      "enabled": true,
       "matchUpdateTypes": [
         "pin",
-        "digest"
+        "digest",
+        "patch"
       ],
-      "enabled": true,
-      groupName: "patch-grouped", // Group all pin and digests updates in a single branch with patch to save CI computing.
+      "matchPackageNames": [
+        "*"
+      ],
     },
     {
       matchPackageNames: ["camunda-platform"],
@@ -81,7 +85,7 @@
     // Terraform AWS modules
     {
       matchDatasources: ["terraform-module"],
-      matchPackagePatterns: ["terraform-aws-modules.*"],
+      matchPackageNames: ["terraform-aws-modules.*"],
       addLabels: ["group:terraform"],
       schedule: [
         "every 2 weeks on Saturday and Sunday",
@@ -99,7 +103,7 @@
     // "v1.2.3" and where the asdf plugin ignores the "v" prefix, we also tell
     // Renovate to ignore it via extractVersion when updating .tool-version file
     {
-      matchFileNames: ["**/.tool-versions", "**/*.tf"],
+      matchFileNames: ["**/.tool-versions", "**/*.tf", "**/*.tfvars"],
       matchPackageNames: [
         "eksctl-io/eksctl",
         "hashicorp/terraform",
@@ -110,19 +114,33 @@
       ],
       extractVersion: "^v(?<version>.*)$",
     },
+    {
+      "matchDatasources": ["endoflife-date"],
+      "matchPackageNames": ["amazon-eks"],
+      "extractVersion": "^(?<version>.*)-eks.+$"
+    },
   ],
+  "customDatasources": {
+    "rosa-camunda": {
+      "defaultRegistryUrlTemplate": "https://camunda.github.io/camunda-tf-rosa/rosa_versions.txt",
+      "format": "plain",
+    },
+  },
   customManagers: [
    {
       customType: "regex",
       fileMatch: [
-        "\.yml",
-        "\.sh",
-        "\.go",
+        "\.yaml$",
+        "\.yml$",
+        "\.sh$",
+        "\.go$",
+        "\.tf$",
+        "\.tfvars$",
         "\.tool-versions$",
         "^justfile$"
         ],
       matchStrings: [
-        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( registryUrl=(?<registryUrl>.*?))?( versioning=(?<versioning>.*?))?\\s.*?=(?<currentValue>.*)",
+        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( registryUrl=(?<registryUrl>.*?))?( versioning=(?<versioning>.*?))?\\s.*?=(?:\\s\\.)?(?<currentValue>.*)",
         "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( registryUrl=(?<registryUrl>.*?))?( versioning=(?<versioning>.*?))?\\s.*?- (?<currentValue>.*)",
         "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( registryUrl=(?<registryUrl>.*?))?( versioning=(?<versioning>.*?))?\\s.*?: (?<currentValue>.*)",
         "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( registryUrl=(?<registryUrl>.*?))?( versioning=(?<versioning>.*?))?\\s.*?=\"(?<currentValue>.*)\"",
@@ -134,3 +152,4 @@
     },
   ]
 }
+
